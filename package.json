@@ -1,0 +1,72 @@
+{
+  "name": "kanolab-vanguard",
+  "displayName": "Vanguard",
+  "description": "kanolab-vanguard",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "kanolab-vanguard.toggleLogging",
+        "title": "Vanguard: 記録の開始/停止"
+      },
+      {
+        "command": "kanolab-vanguard.viewLogs",
+        "title": "Vanguard: ログを表示"
+      },
+      {
+        "command": "kanolab-vanguard.viewDiffs",
+        "title": "Vanguard: 差分ログを表示"
+      }
+    ],
+    "configuration": {
+      "title": "Vanguard",
+      "properties": {
+        "kanolab-vanguard.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "キーロギングを有効にする"
+        },
+        "kanolab-vanguard.diffInterval": {
+          "type": "number",
+          "default": 3000,
+          "description": "差分記録の間隔（ミリ秒）"
+        },
+        "kanolab-vanguard.takeFullSnapshot": {
+          "type": "boolean",
+          "default": true,
+          "description": "定期的にコード全体のスナップショットを取得する"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "pnpm run compile && pnpm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.99.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "eslint": "^9.23.0",
+    "typescript": "^5.8.2",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1"
+  },
+  "packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971"
+}
