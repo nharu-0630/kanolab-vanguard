@@ -8,7 +8,6 @@ class DiffLogger {
     private filePath: string;
     private previousContent: string = '';
     private logger: HashChainLogger;
-
     private LOGGER_SUFFIX = '.diff.log';
 
     constructor(filePath: string) {
@@ -20,7 +19,6 @@ class DiffLogger {
     setContent(content: string): void {
         const diff = gitDiff(this.previousContent, content);
         this.previousContent = content;
-
         if (diff) {
             this.logger.append(`[${Date.now()}] diff: "${diff.replace(/\n/g, '\\n')}"`);
         }
@@ -29,19 +27,21 @@ class DiffLogger {
 
 export class DiffLoggerService implements VService {
     name = '差分ロガー';
-
     private diffLoggers: Map<string, DiffLogger> = new Map();
     private diffIntervalId: NodeJS.Timeout | undefined;
     private disposable: vscode.Disposable | undefined;
-
     private DIFF_INTERVAL_MS = 10000;
     private ALLOWED_EXTENSION = ['.txt', '.py'];
+    private isEnabled: boolean = false;
 
     constructor() {
         this.setup();
     }
 
     private setup(): void {
+    }
+
+    private startTracking(): void {
         if (this.diffIntervalId) {
             clearInterval(this.diffIntervalId);
         }
@@ -60,16 +60,28 @@ export class DiffLoggerService implements VService {
         };
     }
 
+    private stopTracking(): void {
+        if (this.diffIntervalId) {
+            clearInterval(this.diffIntervalId);
+            this.diffIntervalId = undefined;
+        }
+
+        if (this.disposable) {
+            this.disposable.dispose();
+            this.disposable = undefined;
+        }
+    }
+
     private trackDiff(): void {
+        if (!this.isEnabled) { return; }
+
         const editors = vscode.window.visibleTextEditors;
         editors.forEach(editor => {
             const document = editor.document;
             const fileName = document.fileName;
-
             if (!this.isSupported(fileName) || !this.diffLoggers.has(fileName)) {
                 return;
             }
-
             const diffLogger = this.diffLoggers.get(fileName);
             if (!diffLogger) {
                 return;
@@ -83,27 +95,63 @@ export class DiffLoggerService implements VService {
     }
 
     isActive(fileName: string): boolean {
-        return this.diffLoggers.has(fileName);
+        return this.isEnabled && this.diffLoggers.has(fileName);
     }
 
     register(fileName: string): void {
+        if (!this.isEnabled) {
+            vscode.window.showInformationMessage('差分ロガーが無効になっています。有効にしてから登録してください。');
+            return;
+        }
+
         if (this.diffLoggers.has(fileName)) {
             return;
         }
-        this.diffLoggers.set(fileName, new DiffLogger(fileName));
+
+        const diffLogger = new DiffLogger(fileName);
+        this.diffLoggers.set(fileName, diffLogger);
+
+        const document = vscode.workspace.textDocuments.find(doc => doc.fileName === fileName);
+        if (document) {
+            diffLogger.setContent(document.getText());
+        }
     }
 
     cleanup(): void {
-        if (this.disposable) {
-            this.disposable.dispose();
-        }
-        if (this.diffIntervalId) {
-            clearInterval(this.diffIntervalId);
-            this.diffIntervalId = undefined;
-        }
+        this.stopTracking();
+        this.diffLoggers.clear();
     }
 
     getTooltip(): string {
-        return `差分ロガー: ${this.diffLoggers.size}ファイル`;
+        return `差分ロガー: ${this.diffLoggers.size}ファイル (${this.isEnabled ? '有効' : '無効'})`;
+    }
+
+    enable(): void {
+        if (!this.isEnabled) {
+            this.isEnabled = true;
+            this.startTracking();
+            vscode.window.showInformationMessage('差分ロガーを有効化しました');
+
+            const activeEditor = vscode.window.activeTextEditor;
+            if (activeEditor && this.isSupported(activeEditor.document.fileName)) {
+                this.register(activeEditor.document.fileName);
+            }
+        }
+    }
+
+    disable(): void {
+        if (this.isEnabled) {
+            this.isEnabled = false;
+            this.stopTracking();
+            vscode.window.showInformationMessage('差分ロガーを無効化しました');
+        }
+    }
+
+    toggle(): void {
+        if (this.isEnabled) {
+            this.disable();
+        } else {
+            this.enable();
+        }
     }
 }

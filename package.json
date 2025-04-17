@@ -19,7 +19,16 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": []
+    "commands": [
+      {
+        "command": "kanolab-vanguard.start",
+        "title": "Start Kanolab Vanguard"
+      },
+      {
+        "command": "kanolab-vanguard.stop",
+        "title": "Stop Kanolab Vanguard"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

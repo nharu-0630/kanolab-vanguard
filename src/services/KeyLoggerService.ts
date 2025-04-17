@@ -7,7 +7,6 @@ class KeyLogger {
     private filePath: string;
     private timestamp: number;
     private logger: HashChainLogger;
-
     private LOGGER_SUFFIX = '.key.log';
 
     constructor(filePath: string) {
@@ -21,11 +20,9 @@ class KeyLogger {
         if (event.contentChanges.length === 0) {
             return;
         }
-
         const timestamp = Date.now();
         const elapsed = timestamp - this.timestamp;
         this.timestamp = timestamp;
-
         event.contentChanges.forEach(change => {
             let action = "append";
             if (change.text === "") {
@@ -43,25 +40,31 @@ class KeyLogger {
 
 export class KeyLoggerService implements VService {
     name = 'キーロガー';
-
     private keyLoggers: Map<string, KeyLogger> = new Map();
     private disposable: vscode.Disposable | undefined;
-
     private ALLOWED_EXTENSION = ['.txt', '.py'];
+    private isEnabled: boolean = false;
 
     constructor() {
         this.setup();
     }
 
     private setup(): void {
+    }
+
+    private startListening(): void {
+        if (this.disposable) {
+            this.disposable.dispose();
+        }
+
         this.disposable = vscode.workspace.onDidChangeTextDocument(event => {
+            if (!this.isEnabled) { return; }
+
             const document = event.document;
             const fileName = document.fileName;
-
             if (!this.isSupported(fileName)) {
                 return;
             }
-
             const keyLogger = this.keyLoggers.get(fileName);
             if (!keyLogger) {
                 return;
@@ -70,15 +73,27 @@ export class KeyLoggerService implements VService {
         });
     }
 
+    private stopListening(): void {
+        if (this.disposable) {
+            this.disposable.dispose();
+            this.disposable = undefined;
+        }
+    }
+
     isSupported(fileName: string): boolean {
         return this.ALLOWED_EXTENSION.some(ext => fileName.endsWith(ext));
     }
 
     isActive(fileName: string): boolean {
-        return this.keyLoggers.has(fileName);
+        return this.isEnabled && this.keyLoggers.has(fileName);
     }
 
     register(fileName: string): void {
+        if (!this.isEnabled) {
+            vscode.window.showInformationMessage('キーロガーが無効になっています。有効にしてから登録してください。');
+            return;
+        }
+
         if (this.keyLoggers.has(fileName)) {
             return;
         }
@@ -86,12 +101,40 @@ export class KeyLoggerService implements VService {
     }
 
     cleanup(): void {
-        if (this.disposable) {
-            this.disposable.dispose();
-        }
+        this.stopListening();
+        this.keyLoggers.clear();
     }
 
     getTooltip(): string {
-        return `キーロガー: ${this.keyLoggers.size}ファイル`;
+        return `キーロガー: ${this.keyLoggers.size}ファイル (${this.isEnabled ? '有効' : '無効'})`;
+    }
+
+    enable(): void {
+        if (!this.isEnabled) {
+            this.isEnabled = true;
+            this.startListening();
+            vscode.window.showInformationMessage('キーロガーを有効化しました');
+
+            const activeEditor = vscode.window.activeTextEditor;
+            if (activeEditor && this.isSupported(activeEditor.document.fileName)) {
+                this.register(activeEditor.document.fileName);
+            }
+        }
+    }
+
+    disable(): void {
+        if (this.isEnabled) {
+            this.isEnabled = false;
+            this.stopListening();
+            vscode.window.showInformationMessage('キーロガーを無効化しました');
+        }
+    }
+
+    toggle(): void {
+        if (this.isEnabled) {
+            this.disable();
+        } else {
+            this.enable();
+        }
     }
 }

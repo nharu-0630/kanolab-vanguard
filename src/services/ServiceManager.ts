@@ -22,8 +22,16 @@ export class ServiceManager {
         this.services.push(service);
     }
 
-    public getServices(): VService[] {
-        return this.services;
+    public start(): void {
+        this.services.forEach(service => {
+            service.enable();
+        });
+    }
+
+    public stop(): void {
+        this.services.forEach(service => {
+            service.disable();
+        });
     }
 
     public getStatusBarItem(): vscode.StatusBarItem {
@@ -52,7 +60,7 @@ export class ServiceManager {
         const inactiveServices = this.services.filter(s => !s.isActive(fileName));
 
         if (activeServices.length > 0) {
-            this.statusBarItem.text = "$(check) " + activeServices.length + "動作中 " + "$(warning) " + inactiveServices.length + "停止中";
+            this.statusBarItem.text = "$(check) " + activeServices.length + " 動作中 " + "$(warning) " + inactiveServices.length + " 停止中";
         } else {
             this.statusBarItem.text = "$(warning) 停止中";
         }

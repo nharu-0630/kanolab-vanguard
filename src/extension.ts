@@ -10,6 +10,7 @@ export function activate(context: vscode.ExtensionContext) {
 	serviceManager.registerService(new KeyLoggerService());
 	serviceManager.registerService(new DiffLoggerService());
 	serviceManager.registerService(new BrowserLoggerService());
+	serviceManager.start();
 
 	const statusBarItem = serviceManager.getStatusBarItem();
 	serviceManager.updateStatusBar();
@@ -34,11 +35,21 @@ export function activate(context: vscode.ExtensionContext) {
 		serviceManager.updateStatusBar();
 	});
 
+	const startCommandDisposable = vscode.commands.registerCommand('kanolab-vanguard.start', () => {
+		serviceManager.start();
+	});
+
+	const stopCommandDisposable = vscode.commands.registerCommand('kanolab-vanguard.stop', () => {
+		serviceManager.stop();
+	});
+
 	context.subscriptions.push(
 		statusBarItem,
 		onSaveDisposable,
 		onEditorChangeDisposable,
-		onEditorCloseDisposable
+		onEditorCloseDisposable,
+		startCommandDisposable,
+		stopCommandDisposable
 	);
 }
 

@@ -6,4 +6,6 @@ export interface VService {
     isActive(fileName: string): boolean;
     cleanup(): void;
     getTooltip(): string;
+    enable(): void;
+    disable(): void;
 }

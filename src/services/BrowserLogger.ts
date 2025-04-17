@@ -7,20 +7,16 @@ import { VService } from './VService';
 
 export class BrowserLoggerService implements VService {
     name = 'ブラウザロガー';
-
     private logger: HashChainLogger | undefined;
-
     private command: string = "";
     private platform: string = os.platform();
     private isWSL: boolean = false;
-
     private browserIntervalId: NodeJS.Timeout | undefined;
     private disposable: vscode.Disposable | undefined;
-
     private lastNotified: number = 0;
-
     private DIFF_INTERVAL_MS = 1000;
     private DETECTION_KEYWORDS = ['chatgpt', 'chat.openai.com'];
+    private isEnabled: boolean = false;
 
     constructor() {
         this.setup();
@@ -33,10 +29,6 @@ export class BrowserLoggerService implements VService {
         }
         this.logger = new HashChainLogger(currentDir + '/browser.log');
         this.logger.append(`[${Date.now()}] os: "${os.platform()} ${os.release()}" hostname: "${os.hostname()}" username: "${os.userInfo().username}"`);
-
-        if (this.browserIntervalId) {
-            clearInterval(this.browserIntervalId);
-        }
 
         if (this.platform === 'linux') {
             try {
@@ -57,6 +49,12 @@ export class BrowserLoggerService implements VService {
             vscode.window.showErrorMessage(`未対応のプラットフォームです: ${os.platform}`);
             return;
         }
+    }
+
+    private startTracking(): void {
+        if (this.browserIntervalId) {
+            clearInterval(this.browserIntervalId);
+        }
 
         this.browserIntervalId = setInterval(() => {
             this.trackBrowser();
@@ -70,9 +68,26 @@ export class BrowserLoggerService implements VService {
                 }
             }
         };
+
+        this.logger?.append(`[${Date.now()}] Browser tracking started`);
+    }
+
+    private stopTracking(): void {
+        if (this.browserIntervalId) {
+            clearInterval(this.browserIntervalId);
+            this.browserIntervalId = undefined;
+        }
+
+        if (this.disposable) {
+            this.disposable.dispose();
+        }
+
+        this.logger?.append(`[${Date.now()}] Browser tracking stopped`);
     }
 
     private trackBrowser(): void {
+        if (!this.isEnabled) { return; }
+
         exec(this.command, (error, stdout, stderr) => {
             if (error) {
                 console.error(`プロセス一覧取得エラー: ${error.message}`);
@@ -82,14 +97,12 @@ export class BrowserLoggerService implements VService {
                 console.error(`stderr: ${stderr}`);
                 return;
             }
-
             this.checkForChatGPTUsage(stdout);
         });
     }
 
     private checkForChatGPTUsage(processes: string) {
         let browserDetected = false;
-
         const chromeKeywords = ['chrome', 'google chrome', 'chromium'];
         const firefoxKeywords = ['firefox', 'mozilla'];
         const edgeKeywords = ['msedge', 'microsoft edge'];
@@ -105,7 +118,6 @@ export class BrowserLoggerService implements VService {
 
         if (this.isWSL && !browserDetected) {
             const windowsCommand = 'powershell.exe -Command "Get-Process | Where-Object { $_.Name -match \'chrome|firefox|edge|iexplore|opera\' } | Select-Object Name | Format-Table -HideTableHeaders"';
-
             exec(windowsCommand, (error, stdout) => {
                 if (!error && stdout) {
                     for (const keyword of allBrowserKeywords) {
@@ -223,7 +235,7 @@ export class BrowserLoggerService implements VService {
     }
 
     isActive(fileName: string): boolean {
-        return true;
+        return this.isEnabled;
     }
 
     register(fileName: string): void {
@@ -231,16 +243,28 @@ export class BrowserLoggerService implements VService {
     }
 
     cleanup(): void {
-        if (this.disposable) {
-            this.disposable.dispose();
-        }
-        if (this.browserIntervalId) {
-            clearInterval(this.browserIntervalId);
-            this.browserIntervalId = undefined;
-        }
+        this.stopTracking();
     }
 
     getTooltip(): string {
-        return `ブラウザロガー`;
+        return `ブラウザロガー (${this.isEnabled ? '有効' : '無効'})`;
+    }
+
+    enable(): void {
+        if (!this.isEnabled) {
+            this.isEnabled = true;
+            this.startTracking();
+            vscode.window.showInformationMessage('ブラウザロガーを有効化しました');
+            this.logger?.append(`[${Date.now()}] Browser logger enabled`);
+        }
+    }
+
+    disable(): void {
+        if (this.isEnabled) {
+            this.isEnabled = false;
+            this.stopTracking();
+            vscode.window.showInformationMessage('ブラウザロガーを無効化しました');
+            this.logger?.append(`[${Date.now()}] Browser logger disabled`);
+        }
     }
 }
