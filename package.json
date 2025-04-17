@@ -1,35 +1,40 @@
 {
   "name": "kanolab-vanguard",
-  "displayName": "Vanguard",
+  "displayName": "Kanolab Vanguard",
   "description": "kanolab-vanguard",
   "version": "0.0.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nharu-0630/kanolab-vanguard.git"
   },
+  "publisher": "nharu0630",
   "engines": {
     "vscode": "^1.99.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
+  "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [],
-    "configuration": {}
+    "commands": []
   },
   "scripts": {
-    "vscode:prepublish": "pnpm run compile",
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "pnpm run compile && pnpm run lint",
+    "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test",
-    "package": "pnpm vsce package --no-dependencies",
-    "publish": "pnpm vsce publish --no-dependencies"
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "@types/git-diff": "^2.0.7",
+    "@types/proper-lockfile": "^4.1.4",
+    "git-diff": "^2.0.6",
+    "proper-lockfile": "^4.1.2",
+    "sha3": "^2.1.4"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -41,13 +46,5 @@
     "@vscode/test-electron": "^2.5.2",
     "eslint": "^9.24.0",
     "typescript": "^5.8.3"
-  },
-  "packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971",
-  "dependencies": {
-    "@types/git-diff": "^2.0.7",
-    "@types/proper-lockfile": "^4.1.4",
-    "git-diff": "^2.0.6",
-    "proper-lockfile": "^4.1.2",
-    "sha3": "^2.1.4"
   }
 }

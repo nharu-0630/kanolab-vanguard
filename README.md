@@ -1,1 +1,1 @@
-# kanolab-vanguard README
+# Kanolab Vanguard
