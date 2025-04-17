@@ -126,12 +126,4 @@ export class KeyLoggerService implements VService {
             this.stopListening();
         }
     }
-
-    toggle(): void {
-        if (this.isEnabled) {
-            this.disable();
-        } else {
-            this.enable();
-        }
-    }
 }

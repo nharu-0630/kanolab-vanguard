@@ -1,7 +1,7 @@
 {
   "name": "kanolab-vanguard",
   "displayName": "Kanolab Vanguard",
-  "description": "kanolab-vanguard",
+  "description": "This extension is a service for detecting cheating using generative AI by monitoring files while editing and monitoring browsers.",
   "version": "0.1.1",
   "repository": {
     "type": "git",
@@ -22,15 +22,18 @@
     "commands": [
       {
         "command": "kanolab-vanguard.start",
-        "title": "Kanolab Vanguard を開始する"
+        "title": "サービスを開始する",
+        "category": "Kanolab Vanguard"
       },
       {
         "command": "kanolab-vanguard.stop",
-        "title": "Kanolab Vanguard を停止する"
+        "title": "サービスを停止する",
+        "category": "Kanolab Vanguard"
       },
       {
         "command": "kanolab-vanguard.toggle",
-        "title": "Kanolab Vanguard を切り替える"
+        "title": "サービスを切り替える",
+        "category": "Kanolab Vanguard"
       }
     ]
   },

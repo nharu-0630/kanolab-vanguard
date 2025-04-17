@@ -144,12 +144,4 @@ export class DiffLoggerService implements VService {
             this.stopTracking();
         }
     }
-
-    toggle(): void {
-        if (this.isEnabled) {
-            this.disable();
-        } else {
-            this.enable();
-        }
-    }
 }
