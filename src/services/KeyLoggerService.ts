@@ -1,18 +1,53 @@
-import * as fs from 'fs';
 import * as os from 'os';
-import * as path from 'path';
 import * as vscode from 'vscode';
+import { HashChainLogger } from '../utils/HashChainLogger';
 import { VService } from './VService';
+
+class KeyLogger {
+    private filePath: string;
+    private timestamp: number;
+    private logger: HashChainLogger;
+
+    private LOGGER_SUFFIX = '.key.log';
+
+    constructor(filePath: string) {
+        this.filePath = filePath + this.LOGGER_SUFFIX;
+        this.timestamp = Date.now();
+        this.logger = new HashChainLogger(this.filePath);
+        this.logger.append(`[${this.timestamp}] file: "${filePath}" os: "${os.platform()} ${os.release()}" hostname: "${os.hostname()}" username: "${os.userInfo().username}"`);
+    }
+
+    append(event: vscode.TextDocumentChangeEvent) {
+        if (event.contentChanges.length === 0) {
+            return;
+        }
+
+        const timestamp = Date.now();
+        const elapsed = timestamp - this.timestamp;
+        this.timestamp = timestamp;
+
+        event.contentChanges.forEach(change => {
+            let action = "append";
+            if (change.text === "") {
+                action = "delete";
+            } else if (change.rangeLength > 0) {
+                action = "replace";
+            }
+            this.logger.append(`[${timestamp}] ${action}: "${change.text.replace(/\n/g, '\\n')}" ` +
+                `(L${change.range.start.line + 1}:C${change.range.start.character + 1} - ` +
+                `L${change.range.end.line + 1}:C${change.range.end.character + 1}) ` +
+                `interval: ${elapsed}ms`);
+        });
+    }
+}
 
 export class KeyLoggerService implements VService {
     name = 'キーロガー';
 
-    private keydownFileNames: Map<string, string> = new Map();
-    private keydownTimestamp: Map<string, number> = new Map();
+    private keyLoggers: Map<string, KeyLogger> = new Map();
     private disposable: vscode.Disposable | undefined;
 
     private ALLOWED_EXTENSION = ['.txt', '.py'];
-    private LOGGER_SUFFIX = '.key.log';
 
     constructor() {
         this.setup();
@@ -27,27 +62,11 @@ export class KeyLoggerService implements VService {
                 return;
             }
 
-            const logFileName = this.keydownFileNames.get(fileName);
-            if (!logFileName || event.contentChanges.length === 0) {
+            const keyLogger = this.keyLoggers.get(fileName);
+            if (!keyLogger) {
                 return;
             }
-
-            const timestamp = Date.now();
-            const lastKeydownTimestamp = this.keydownTimestamp.get(fileName) || timestamp;
-            const elapsed = timestamp - lastKeydownTimestamp;
-            this.keydownTimestamp.set(fileName, timestamp);
-
-            event.contentChanges.forEach(change => {
-                const inputText = change.text;
-                const rangeLength = change.rangeLength;
-                const deletedText = rangeLength > 0 ? `${rangeLength}文字削除` : '';
-                const logEntry = `[${new Date(timestamp).toISOString()}][${path.basename(fileName)}] ` +
-                    `キー: "${inputText.replace(/\n/g, '\\n')}" ` +
-                    `${deletedText ? `削除: "${deletedText}" ` : ''}` +
-                    `位置: L${change.range.start.line + 1}:C${change.range.start.character + 1} ` +
-                    `間隔: ${elapsed}ms\n`;
-                fs.appendFileSync(logFileName, logEntry);
-            });
+            keyLogger.append(event);
         });
     }
 
@@ -56,37 +75,23 @@ export class KeyLoggerService implements VService {
     }
 
     isActive(fileName: string): boolean {
-        return this.keydownFileNames.has(fileName);
+        return this.keyLoggers.has(fileName);
     }
 
     register(fileName: string): void {
-        if (this.keydownFileNames.has(fileName)) {
+        if (this.keyLoggers.has(fileName)) {
             return;
         }
-
-        const logFilePath = fileName + this.LOGGER_SUFFIX;
-
-        const header = `=== キーロガー開始: ${new Date().toISOString()} ===\n` +
-            `ファイル: ${fileName}\n` +
-            `OS: ${os.platform()} ${os.release()}\n` +
-            `ホスト名: ${os.hostname()}\n` +
-            `ユーザー名: ${os.userInfo().username}\n\n` +
-            `形式: [タイムスタンプ][ファイル名] キー: "入力テキスト" 削除: "削除内容" 位置: L行:C列 間隔: ミリ秒\n\n`;
-        fs.writeFileSync(logFilePath, header);
-
-        this.keydownFileNames.set(fileName, logFilePath);
-        this.keydownTimestamp.set(fileName, Date.now());
+        this.keyLoggers.set(fileName, new KeyLogger(fileName));
     }
 
     cleanup(): void {
         if (this.disposable) {
             this.disposable.dispose();
         }
-        this.keydownFileNames.clear();
-        this.keydownTimestamp.clear();
     }
 
     getTooltip(): string {
-        return `キーロガー: ${this.keydownFileNames.size}ファイル`;
+        return `キーロガー: ${this.keyLoggers.size}ファイル`;
     }
 }
