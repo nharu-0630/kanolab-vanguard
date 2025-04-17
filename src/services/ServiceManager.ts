@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { VMonitor } from './VMonitor';
+import { VService } from './VService';
 
-export class VMonitorManager {
-    private static instance: VMonitorManager;
-    private monitors: VMonitor[] = [];
+export class ServiceManager {
+    private static instance: ServiceManager;
+    private services: VService[] = [];
     private statusBarItem: vscode.StatusBarItem;
 
     private constructor() {
@@ -11,19 +11,19 @@ export class VMonitorManager {
         this.statusBarItem.show();
     }
 
-    public static getInstance(): VMonitorManager {
-        if (!VMonitorManager.instance) {
-            VMonitorManager.instance = new VMonitorManager();
+    public static getInstance(): ServiceManager {
+        if (!ServiceManager.instance) {
+            ServiceManager.instance = new ServiceManager();
         }
-        return VMonitorManager.instance;
+        return ServiceManager.instance;
     }
 
-    public registerMonitor(monitor: VMonitor): void {
-        this.monitors.push(monitor);
+    public registerService(service: VService): void {
+        this.services.push(service);
     }
 
-    public getMonitors(): VMonitor[] {
-        return this.monitors;
+    public getServices(): VService[] {
+        return this.services;
     }
 
     public getStatusBarItem(): vscode.StatusBarItem {
@@ -48,15 +48,15 @@ export class VMonitorManager {
             return;
         }
 
-        const activatedMonitors = this.monitors.filter(monitor => monitor.isActive(fileName));
-        const deactivatedMonitors = this.monitors.filter(monitor => !monitor.isActive(fileName));
+        const activeServices = this.services.filter(s => s.isActive(fileName));
+        const inactiveServices = this.services.filter(s => !s.isActive(fileName));
 
-        if (activatedMonitors.length > 0) {
-            this.statusBarItem.text = "$(check) " + activatedMonitors.length + "動作中 " + "$(warning) " + deactivatedMonitors.length + "停止中";
+        if (activeServices.length > 0) {
+            this.statusBarItem.text = "$(check) " + activeServices.length + "動作中 " + "$(warning) " + inactiveServices.length + "停止中";
         } else {
             this.statusBarItem.text = "$(warning) 停止中";
         }
-        this.statusBarItem.tooltip = this.monitors.map(m => m.getTooltip()).join('\n');
+        this.statusBarItem.tooltip = this.services.map(s => s.getTooltip()).join('\n');
     }
 
     public registerDocument(document: vscode.TextDocument): void {
@@ -66,16 +66,16 @@ export class VMonitorManager {
             return;
         }
 
-        this.monitors.forEach(monitor => {
-            if (monitor.isSupported(fileName)) {
-                monitor.register(fileName);
+        this.services.forEach(s => {
+            if (s.isSupported(fileName)) {
+                s.register(fileName);
             }
         });
 
         this.updateStatusBar();
     }
 
-    public cleanupAllMonitors(): void {
-        this.monitors.forEach(monitor => monitor.cleanup());
+    public cleanupServices(): void {
+        this.services.forEach(s => s.cleanup());
     }
 }

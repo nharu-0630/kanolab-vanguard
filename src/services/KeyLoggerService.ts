@@ -2,9 +2,9 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { VMonitor } from './VMonitor';
+import { VService } from './VService';
 
-export class KeyLoggerMonitor implements VMonitor {
+export class KeyLoggerService implements VService {
     name = 'キーロガー';
 
     private keydownFileNames: Map<string, string> = new Map();

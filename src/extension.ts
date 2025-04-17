@@ -1,35 +1,35 @@
 import * as vscode from 'vscode';
-import { DiffLoggerMonitor } from './DiffLoggerMonitor';
-import { KeyLoggerMonitor } from './KeyLoggerMonitor';
-import { VMonitorManager } from './VMonitorManager';
+import { DiffLoggerService } from './services/DiffLoggerService';
+import { KeyLoggerService } from './services/KeyLoggerService';
+import { ServiceManager } from './services/ServiceManager';
 
 export function activate(context: vscode.ExtensionContext) {
-	const monitorManager = VMonitorManager.getInstance();
+	const serviceManager = ServiceManager.getInstance();
 
-	monitorManager.registerMonitor(new KeyLoggerMonitor());
-	monitorManager.registerMonitor(new DiffLoggerMonitor());
+	serviceManager.registerService(new KeyLoggerService());
+	serviceManager.registerService(new DiffLoggerService());
 
-	const statusBarItem = monitorManager.getStatusBarItem();
-	monitorManager.updateStatusBar();
+	const statusBarItem = serviceManager.getStatusBarItem();
+	serviceManager.updateStatusBar();
 
 	if (vscode.window.activeTextEditor) {
 		const document = vscode.window.activeTextEditor.document;
-		monitorManager.registerDocument(document);
+		serviceManager.registerDocument(document);
 	}
 
 	const onSaveDisposable = vscode.workspace.onDidSaveTextDocument(document => {
-		monitorManager.registerDocument(document);
+		serviceManager.registerDocument(document);
 	});
 
 	const onEditorChangeDisposable = vscode.window.onDidChangeActiveTextEditor(editor => {
-		monitorManager.updateStatusBar();
+		serviceManager.updateStatusBar();
 		if (editor && !editor.document.isUntitled) {
-			monitorManager.registerDocument(editor.document);
+			serviceManager.registerDocument(editor.document);
 		}
 	});
 
 	const onEditorCloseDisposable = vscode.workspace.onDidCloseTextDocument(_ => {
-		monitorManager.updateStatusBar();
+		serviceManager.updateStatusBar();
 	});
 
 	context.subscriptions.push(
@@ -41,5 +41,5 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-	VMonitorManager.getInstance().cleanupAllMonitors();
+	ServiceManager.getInstance().cleanupServices();
 }

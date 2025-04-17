@@ -3,9 +3,9 @@ import gitDiff from 'git-diff';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { VMonitor } from './VMonitor';
+import { VService } from './VService';
 
-export class DiffLoggerMonitor implements VMonitor {
+export class DiffLoggerService implements VService {
     name = '差分ロガー';
 
     private diffFileNames: Map<string, string> = new Map();
