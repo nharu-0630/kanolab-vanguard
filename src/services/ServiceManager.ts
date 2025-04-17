@@ -3,11 +3,13 @@ import { VService } from './VService';
 
 export class ServiceManager {
     private static instance: ServiceManager;
+    private isEnabled: boolean = false;
     private services: VService[] = [];
     private statusBarItem: vscode.StatusBarItem;
 
     private constructor() {
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+        this.statusBarItem.command = 'kanolab-vanguard.toggle';
         this.statusBarItem.show();
     }
 
@@ -23,15 +25,23 @@ export class ServiceManager {
     }
 
     public start(): void {
+        this.isEnabled = true;
         this.services.forEach(service => {
             service.enable();
         });
+        this.updateStatusBar();
     }
 
     public stop(): void {
+        this.isEnabled = false;
         this.services.forEach(service => {
             service.disable();
         });
+        this.updateStatusBar();
+    }
+
+    public isRunning(): boolean {
+        return this.isEnabled;
     }
 
     public getStatusBarItem(): vscode.StatusBarItem {
@@ -42,7 +52,8 @@ export class ServiceManager {
         const editor = vscode.window.activeTextEditor;
 
         if (!editor) {
-            this.statusBarItem.text = "$(keyboard) 待機中";
+            this.statusBarItem.text = "$(shield) 待機中";
+            this.statusBarItem.color = "yellow";
             this.statusBarItem.tooltip = "ファイルが選択されていません";
             return;
         }
@@ -51,19 +62,15 @@ export class ServiceManager {
         const fileName = document.fileName;
 
         if (document.isUntitled) {
-            this.statusBarItem.text = "$(warning) 停止中: ファイル未保存";
+            this.statusBarItem.text = "$(shield) 停止中";
+            this.statusBarItem.color = "red";
             this.statusBarItem.tooltip = "ファイルを保存してください";
             return;
         }
 
         const activeServices = this.services.filter(s => s.isActive(fileName));
-        const inactiveServices = this.services.filter(s => !s.isActive(fileName));
-
-        if (activeServices.length > 0) {
-            this.statusBarItem.text = "$(check) " + activeServices.length + " 動作中 " + "$(warning) " + inactiveServices.length + " 停止中";
-        } else {
-            this.statusBarItem.text = "$(warning) 停止中";
-        }
+        this.statusBarItem.text = "$(shield) " + activeServices.length + " / " + this.services.length + " サービス";
+        this.statusBarItem.color = activeServices.length > 0 ? "green" : "red";
         this.statusBarItem.tooltip = this.services.map(s => s.getTooltip()).join('\n');
     }
 

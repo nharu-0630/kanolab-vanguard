@@ -91,7 +91,6 @@ export class KeyLoggerService implements VService {
 
     register(fileName: string): void {
         if (!this.isEnabled) {
-            vscode.window.showInformationMessage('キーロガーが無効になっています。有効にしてから登録してください。');
             return;
         }
 
@@ -114,7 +113,6 @@ export class KeyLoggerService implements VService {
         if (!this.isEnabled) {
             this.isEnabled = true;
             this.startListening();
-            vscode.window.showInformationMessage('キーロガーを有効化しました');
 
             const activeEditor = vscode.window.activeTextEditor;
             if (activeEditor && this.isSupported(activeEditor.document.fileName)) {
@@ -127,7 +125,6 @@ export class KeyLoggerService implements VService {
         if (this.isEnabled) {
             this.isEnabled = false;
             this.stopListening();
-            vscode.window.showInformationMessage('キーロガーを無効化しました');
         }
     }
 

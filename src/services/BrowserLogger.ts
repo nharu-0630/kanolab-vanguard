@@ -71,8 +71,10 @@ export class BrowserLoggerService implements VService {
 
     private trackBrowser(): void {
         if (!this.isEnabled) { return; }
-        if (this.platform === Platform.Windows || this.platform === Platform.WSL) {
+        if (this.platform === Platform.Windows) {
             this.verifyWindowsBrowserActivity();
+        } else if (this.platform === Platform.WSL) {
+            this.verifyWSLBrowserActivity();
         } else if (this.platform === Platform.Darwin) {
             this.verifyDarwinBrowserActivity();
         } else if (this.platform === Platform.Linux) {
@@ -81,9 +83,7 @@ export class BrowserLoggerService implements VService {
     }
 
     private verifyWindowsBrowserActivity(): void {
-        const command = `cmd.exe /c powershell.exe -NoLogo -NonInteractive -Command '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process | Where-Object { $_.ProcessName -in @("chrome", "msedge", "firefox") -and $_.MainWindowTitle -ne "" } | ForEach-Object { $_.MainWindowTitle }'`;
-
-        exec(command, { windowsHide: false, encoding: 'utf8' }, (error, stdout, stderr) => {
+        exec(`cmd.exe /c powershell.exe -NoLogo -NonInteractive -ExecutionPolicy Bypass -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process | Where-Object { $_.ProcessName -in @('chrome', 'msedge', 'firefox') -and $_.MainWindowTitle -ne '' } | ForEach-Object { $_.MainWindowTitle }"`, { windowsHide: false, encoding: 'utf8' }, (error, stdout, stderr) => {
             if (error) {
                 return;
             }
@@ -91,7 +91,20 @@ export class BrowserLoggerService implements VService {
                 this.logger?.append(`[${Date.now()}] check stderr: ${stderr}`);
                 return;
             }
-            this.checkDetectionKeywords(stdout);
+            this.detectKeywords(stdout);
+        });
+    }
+
+    private verifyWSLBrowserActivity(): void {
+        exec(`cmd.exe /c powershell.exe -NoLogo -NonInteractive -Command '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process | Where-Object { $_.ProcessName -in @("chrome", "msedge", "firefox") -and $_.MainWindowTitle -ne "" } | ForEach-Object { $_.MainWindowTitle }'`, { windowsHide: false, encoding: 'utf8' }, (error, stdout, stderr) => {
+            if (error) {
+                return;
+            }
+            if (stderr) {
+                this.logger?.append(`[${Date.now()}] check stderr: ${stderr}`);
+                return;
+            }
+            this.detectKeywords(stdout);
         });
     }
 
@@ -101,9 +114,10 @@ export class BrowserLoggerService implements VService {
             'tell application "Safari" to get URL of current tab of front window',
             'tell application "Firefox" to get URL of active tab of front window',
         ];
-        scripts.forEach(script => {
-            const command = `osascript -e '${script}'`;
-            exec(command, (error, stdout, stderr) => {
+        let result = '';
+        scripts.forEach(s => {
+            const script = `osascript -e '${s}'`;
+            exec(script, (error, stdout, stderr) => {
                 if (error) {
                     return;
                 }
@@ -111,9 +125,10 @@ export class BrowserLoggerService implements VService {
                     this.logger?.append(`[${Date.now()}] check stderr: ${stderr}`);
                     return;
                 }
-                this.checkDetectionKeywords(stdout);
+                result += stdout + '\n';
             });
         });
+        this.detectKeywords(result);
     }
 
     private verifyLinuxBrowserActivity(): void {
@@ -125,18 +140,27 @@ export class BrowserLoggerService implements VService {
                 this.logger?.append(`[${Date.now()}] check stderr: ${stderr}`);
                 return;
             }
-            this.checkDetectionKeywords(stdout);
+            this.detectKeywords(stdout);
         });
     }
 
-    private checkDetectionKeywords(value: string) {
+    private detectKeywords(lines: string) {
         const timestamp = Date.now();
-        for (const keyword of this.DETECTION_KEYWORDS) {
-            if (value.toLowerCase().includes(keyword)) {
-                this.logger?.append(`[${timestamp}] Detected keyword in browser: ${keyword}`);
-                this.notifyDetectedAlert();
-                return;
+        let found = false;
+        for (const line of lines.split('\n')) {
+            if (line.trim() === '') { continue; }
+            const value = line.trim().toLowerCase();
+            for (const keyword of this.DETECTION_KEYWORDS) {
+                if (value.includes(keyword)) {
+                    found = true;
+                    this.logger?.append(`[${timestamp}] Detected keyword in browser: ${keyword} in ${line}`);
+                    this.notifyDetectedAlert();
+                    break;
+                }
             }
+        }
+        if (found) {
+            return;
         }
         this.logger?.append(`[${timestamp}] No detection keywords found in browser`);
     }
@@ -144,7 +168,7 @@ export class BrowserLoggerService implements VService {
     private notifyDetectedAlert() {
         const timestamp = Date.now();
         if (timestamp - this.lastNotified > 15000) {
-            vscode.window.showWarningMessage('Generative AI detected in browser!');
+            vscode.window.showWarningMessage('ブラウザ上での生成AIの使用が検出されました。');
             this.logger?.append(`[${timestamp}] Generative AI detected in browser!`);
             this.lastNotified = timestamp;
         }
@@ -174,7 +198,6 @@ export class BrowserLoggerService implements VService {
         if (!this.isEnabled) {
             this.isEnabled = true;
             this.startTracking();
-            vscode.window.showInformationMessage('ブラウザロガーを有効化しました');
             this.logger?.append(`[${Date.now()}] Browser logger enabled`);
         }
     }
@@ -183,7 +206,6 @@ export class BrowserLoggerService implements VService {
         if (this.isEnabled) {
             this.isEnabled = false;
             this.stopTracking();
-            vscode.window.showInformationMessage('ブラウザロガーを無効化しました');
             this.logger?.append(`[${Date.now()}] Browser logger disabled`);
         }
     }

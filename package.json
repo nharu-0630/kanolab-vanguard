@@ -22,11 +22,15 @@
     "commands": [
       {
         "command": "kanolab-vanguard.start",
-        "title": "Start Kanolab Vanguard"
+        "title": "Kanolab Vanguard を開始する"
       },
       {
         "command": "kanolab-vanguard.stop",
-        "title": "Stop Kanolab Vanguard"
+        "title": "Kanolab Vanguard を停止する"
+      },
+      {
+        "command": "kanolab-vanguard.toggle",
+        "title": "Kanolab Vanguard を切り替える"
       }
     ]
   },

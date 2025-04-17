@@ -103,7 +103,6 @@ export class DiffLoggerService implements VService {
 
     register(fileName: string): void {
         if (!this.isEnabled) {
-            vscode.window.showInformationMessage('差分ロガーが無効になっています。有効にしてから登録してください。');
             return;
         }
 
@@ -133,7 +132,6 @@ export class DiffLoggerService implements VService {
         if (!this.isEnabled) {
             this.isEnabled = true;
             this.startTracking();
-            vscode.window.showInformationMessage('差分ロガーを有効化しました');
 
             const activeEditor = vscode.window.activeTextEditor;
             if (activeEditor && this.isSupported(activeEditor.document.fileName)) {
@@ -146,7 +144,6 @@ export class DiffLoggerService implements VService {
         if (this.isEnabled) {
             this.isEnabled = false;
             this.stopTracking();
-            vscode.window.showInformationMessage('差分ロガーを無効化しました');
         }
     }
 

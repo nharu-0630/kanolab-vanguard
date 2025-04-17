@@ -43,13 +43,23 @@ export function activate(context: vscode.ExtensionContext) {
 		serviceManager.stop();
 	});
 
+	const toggleCommandDisposable = vscode.commands.registerCommand('kanolab-vanguard.toggle', () => {
+		if (serviceManager.isRunning()) {
+			serviceManager.stop();
+		} else {
+			serviceManager.start();
+		}
+		serviceManager.updateStatusBar();
+	});
+
 	context.subscriptions.push(
 		statusBarItem,
 		onSaveDisposable,
 		onEditorChangeDisposable,
 		onEditorCloseDisposable,
 		startCommandDisposable,
-		stopCommandDisposable
+		stopCommandDisposable,
+		toggleCommandDisposable
 	);
 }
 
