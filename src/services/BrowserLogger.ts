@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import * as os from 'os';
 import * as vscode from 'vscode';
 import { HashChainLogger } from '../utils/HashChainLogger';
@@ -118,17 +118,32 @@ export class BrowserLoggerService implements VService {
     }
 
     private verifyWindowsBrowserActivity(): void {
-        exec(`COLS=80 LINES=25 powershell.exe -NoLogo -NonInteractive -Command "Get-Process | Where-Object { $_.ProcessName -in @('chrome', 'msedge', 'firefox') -and $_.MainWindowTitle -ne '' } | ForEach-Object { $_.MainWindowTitle }"`, (error, stdout, stderr) => {
-            if (error) {
-                return;
+        const ps = spawn('powershell.exe', [
+            '-NoLogo',
+            '-NonInteractive',
+            '-Command',
+            "Get-Process | Where-Object { $_.ProcessName -in @('chrome', 'msedge', 'firefox') -and $_.MainWindowTitle -ne '' } | ForEach-Object { $_.MainWindowTitle }"
+        ], {
+            env: {
+                COLS: '80',
+                LINES: '25'
             }
-            if (stderr) {
-                this.logger?.append(`[${Date.now()}] WSL browser check stderr: ${stderr}`);
-                return;
+        });
+
+        let output = '';
+        ps.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+
+        ps.stderr.on('data', (data) => {
+            this.logger?.append(`[${Date.now()}] WSL browser check stderr: ${data.toString()}`);
+        });
+
+        ps.on('close', (code) => {
+            if (code === 0) {
+                this.checkDetectionKeywords(output);
             }
-            this.checkDetectionKeywords(stdout);
-        }
-        );
+        });
     }
 
     private isBrowserRunning(processes: string): boolean {
