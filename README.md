@@ -1,5 +1,7 @@
 # Kanolab Vanguard
 
+![vanguard](./images/vanguard.gif)
+
 この拡張機能は、編集中のファイルの監視やブラウザの監視により、生成AIを用いた不正行為を検知するサービスです。\
 This extension is a service that detects cheating using generated AI by monitoring files being edited and by monitoring the browser.
 

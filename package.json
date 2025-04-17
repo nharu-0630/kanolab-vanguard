@@ -5,7 +5,7 @@
   "version": "0.1.1",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nharu-0630/kanolab-vanguard.git"
+    "url": "https://github.com/nharu-0630/kanolab-vanguard.git"
   },
   "publisher": "nharu0630",
   "engines": {
