@@ -7,8 +7,6 @@ import { VService } from './VService';
 
 
 export class BrowserLoggerService implements VService {
-    public readonly name = 'ブラウザロガー';
-
     private logger: HashChainLogger | undefined;
     private platform: Platform = getPlatform();
     private browserIntervalId: NodeJS.Timeout | undefined;
@@ -174,15 +172,15 @@ export class BrowserLoggerService implements VService {
         }
     }
 
-    isSupported(fileName: string): boolean {
+    isSupported(_: string): boolean {
         return true;
     }
 
-    isActive(fileName: string): boolean {
+    isActive(_: string): boolean {
         return this.isEnabled;
     }
 
-    register(fileName: string): void {
+    register(_: string): void {
         return;
     }
 
@@ -191,7 +189,7 @@ export class BrowserLoggerService implements VService {
     }
 
     getTooltip(): string {
-        return `ブラウザロガー (${this.isEnabled ? '有効' : '無効'})`;
+        return `ブラウザロガー: ${this.isEnabled ? '有効' : '無効'}`;
     }
 
     enable(): void {

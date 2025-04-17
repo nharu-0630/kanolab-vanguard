@@ -27,8 +27,6 @@ class DiffLogger {
 }
 
 export class DiffLoggerService implements VService {
-    public readonly name = '差分ロガー';
-
     private diffLoggers: Map<string, DiffLogger> = new Map();
     private diffIntervalId: NodeJS.Timeout | undefined;
     private disposable: vscode.Disposable | undefined;
@@ -125,7 +123,7 @@ export class DiffLoggerService implements VService {
     }
 
     getTooltip(): string {
-        return `差分ロガー: ${this.diffLoggers.size}ファイル (${this.isEnabled ? '有効' : '無効'})`;
+        return `差分ロガー: ${this.isEnabled ? `有効 (${this.diffLoggers.size})` : '無効'}`;
     }
 
     enable(): void {

@@ -40,7 +40,6 @@ class KeyLogger {
 }
 
 export class KeyLoggerService implements VService {
-    name = 'キーロガー';
     private keyLoggers: Map<string, KeyLogger> = new Map();
     private disposable: vscode.Disposable | undefined;
     private ALLOWED_EXTENSION = ['.txt', '.py'];
@@ -106,7 +105,7 @@ export class KeyLoggerService implements VService {
     }
 
     getTooltip(): string {
-        return `キーロガー: ${this.keyLoggers.size}ファイル (${this.isEnabled ? '有効' : '無効'})`;
+        return `キーロガー: ${this.isEnabled ? `有効 (${this.keyLoggers.size})` : '無効'}`;
     }
 
     enable(): void {

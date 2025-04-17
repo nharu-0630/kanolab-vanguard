@@ -52,7 +52,7 @@ export class ServiceManager {
         const editor = vscode.window.activeTextEditor;
 
         if (!editor) {
-            this.statusBarItem.text = "$(shield) 待機中";
+            this.statusBarItem.text = "$(shield) Vanguard 待機中";
             this.statusBarItem.color = "yellow";
             this.statusBarItem.tooltip = "ファイルが選択されていません";
             return;
@@ -62,16 +62,23 @@ export class ServiceManager {
         const fileName = document.fileName;
 
         if (document.isUntitled) {
-            this.statusBarItem.text = "$(shield) 停止中";
+            this.statusBarItem.text = "$(shield) Vanguard 未保存";
             this.statusBarItem.color = "red";
             this.statusBarItem.tooltip = "ファイルを保存してください";
             return;
         }
 
         const activeServices = this.services.filter(s => s.isActive(fileName));
-        this.statusBarItem.text = "$(shield) " + activeServices.length + " / " + this.services.length + " サービス";
-        this.statusBarItem.color = activeServices.length > 0 ? "green" : "red";
-        this.statusBarItem.tooltip = this.services.map(s => s.getTooltip()).join('\n');
+
+        if (activeServices.length === 0) {
+            this.statusBarItem.text = "$(unlock) Vanguard 停止中";
+            this.statusBarItem.color = "red";
+            this.statusBarItem.tooltip = "サービスが無効です";
+            return;
+        }
+        this.statusBarItem.text = "$(shield) Vanguard " + activeServices.length + "/" + this.services.length + " 実行中";
+        this.statusBarItem.color = activeServices.length === this.services.length ? "green" : "yellow";
+        this.statusBarItem.tooltip = "サービスが有効です\n" + this.services.map(s => s.getTooltip()).join('\n');
     }
 
     public registerDocument(document: vscode.TextDocument): void {
