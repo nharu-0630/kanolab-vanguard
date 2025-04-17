@@ -8,7 +8,8 @@ class DiffLogger {
     private filePath: string;
     private previousContent: string = '';
     private logger: HashChainLogger;
-    private LOGGER_SUFFIX = '.diff.log';
+
+    private readonly LOGGER_SUFFIX = '.diff.log';
 
     constructor(filePath: string) {
         this.filePath = filePath + this.LOGGER_SUFFIX;
@@ -26,13 +27,15 @@ class DiffLogger {
 }
 
 export class DiffLoggerService implements VService {
-    name = '差分ロガー';
+    public readonly name = '差分ロガー';
+
     private diffLoggers: Map<string, DiffLogger> = new Map();
     private diffIntervalId: NodeJS.Timeout | undefined;
     private disposable: vscode.Disposable | undefined;
-    private DIFF_INTERVAL_MS = 10000;
-    private ALLOWED_EXTENSION = ['.txt', '.py'];
     private isEnabled: boolean = false;
+
+    private readonly DIFF_INTERVAL_MS = 10000;
+    private readonly ALLOWED_EXTENSION = ['.txt', '.py'];
 
     constructor() {
         this.setup();

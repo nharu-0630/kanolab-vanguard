@@ -1,22 +1,24 @@
 import { exec } from 'child_process';
-import * as fs from 'fs';
 import * as os from 'os';
 import * as vscode from 'vscode';
 import { HashChainLogger } from '../utils/HashChainLogger';
+import { getPlatform, Platform } from '../utils/Platform';
 import { VService } from './VService';
 
+
 export class BrowserLoggerService implements VService {
-    name = 'ブラウザロガー';
+    public readonly name = 'ブラウザロガー';
+
     private logger: HashChainLogger | undefined;
-    private command: string = "";
-    private platform: string = os.platform();
-    private isWSL: boolean = false;
+    private platform: Platform = getPlatform();
     private browserIntervalId: NodeJS.Timeout | undefined;
     private disposable: vscode.Disposable | undefined;
     private lastNotified: number = 0;
-    private DIFF_INTERVAL_MS = 1000;
-    private DETECTION_KEYWORDS = ['chatgpt', 'chat.openai.com'];
     private isEnabled: boolean = false;
+
+    private readonly DIFF_INTERVAL_MS = 5000;
+    private readonly DETECTION_KEYWORDS = ['chatgpt', 'chat.openai.com'];
+    private readonly BROWSER_KEYWORDS = ["chrome", "chromium", "firefox", "msedge", "safari"];
 
     constructor() {
         this.setup();
@@ -27,28 +29,10 @@ export class BrowserLoggerService implements VService {
         if (!currentDir) {
             throw new Error('No workspace folder found.');
         }
+
         this.logger = new HashChainLogger(currentDir + '/browser.log');
-        this.logger.append(`[${Date.now()}] os: "${os.platform()} ${os.release()}" hostname: "${os.hostname()}" username: "${os.userInfo().username}"`);
-
-        if (this.platform === 'linux') {
-            try {
-                const procVersion = fs.readFileSync('/proc/version', 'utf8').toLowerCase();
-                this.isWSL = procVersion.includes('microsoft') || procVersion.includes('wsl');
-            } catch (error) {
-                console.error('WSL検出エラー:', error);
-            }
-        }
-
-        if (this.platform === 'win32') {
-            this.command = 'tasklist /fo csv /nh';
-        } else if (this.platform === 'darwin') {
-            this.command = 'ps -axo pid,comm';
-        } else if (this.platform === 'linux') {
-            this.command = 'ps -axo pid,comm';
-        } else {
-            vscode.window.showErrorMessage(`未対応のプラットフォームです: ${os.platform}`);
-            return;
-        }
+        const systemInfo = `[${Date.now()}] os: "${os.platform()} ${os.release()}" hostname: "${os.hostname()}" username: "${os.userInfo().username}"`;
+        this.logger.append(systemInfo);
     }
 
     private startTracking(): void {
@@ -87,141 +71,121 @@ export class BrowserLoggerService implements VService {
 
     private trackBrowser(): void {
         if (!this.isEnabled) { return; }
+        let command = '';
 
-        exec(this.command, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`プロセス一覧取得エラー: ${error.message}`);
-                return;
-            }
-            if (stderr) {
-                console.error(`stderr: ${stderr}`);
-                return;
-            }
-            this.checkForChatGPTUsage(stdout);
-        });
-    }
-
-    private checkForChatGPTUsage(processes: string) {
-        let browserDetected = false;
-        const chromeKeywords = ['chrome', 'google chrome', 'chromium'];
-        const firefoxKeywords = ['firefox', 'mozilla'];
-        const edgeKeywords = ['msedge', 'microsoft edge'];
-        const safariKeywords = ['safari'];
-        const allBrowserKeywords = [...chromeKeywords, ...firefoxKeywords, ...edgeKeywords, ...safariKeywords];
-
-        for (const keyword of allBrowserKeywords) {
-            if (processes.toLowerCase().includes(keyword)) {
-                browserDetected = true;
-                break;
-            }
-        }
-
-        if (this.isWSL && !browserDetected) {
-            const windowsCommand = 'powershell.exe -Command "Get-Process | Where-Object { $_.Name -match \'chrome|firefox|edge|iexplore|opera\' } | Select-Object Name | Format-Table -HideTableHeaders"';
-            exec(windowsCommand, (error, stdout) => {
-                if (!error && stdout) {
-                    for (const keyword of allBrowserKeywords) {
-                        if (stdout.toLowerCase().includes(keyword)) {
-                            browserDetected = true;
-                            this.checkWindowsBrowserTabs();
-                            break;
-                        }
-                    }
-                }
-            });
+        if (this.platform === Platform.Windows) {
+            command = 'tasklist /fo csv /nh';
+        } else if (this.platform === Platform.Darwin || this.platform === Platform.Linux || this.platform === Platform.WSL) {
+            command = 'ps -axo pid,comm';
+        } else {
+            const errorMsg = `未対応プラットフォーム: ${this.platform}`;
+            vscode.window.showErrorMessage(errorMsg);
+            this.logger?.append(`[${Date.now()}] ${errorMsg}`);
             return;
         }
 
-        if (this.platform === 'win32') {
-            exec('tasklist /v /fo csv /nh', (error, stdout) => {
-                if (error) {
-                    return;
-                }
-                this.detectChatGPTInWindowTitles(stdout);
-            });
-        } else if (this.platform === 'darwin') {
-            const scriptForChrome = `
-                osascript -e 'tell application "Google Chrome" to get URL of active tab of front window'
-            `;
-            exec(scriptForChrome, (error, stdout) => {
-                if (!error && stdout) {
-                    this.detectChatGPTInURL(stdout);
-                }
-            });
-
-            const scriptForSafari = `
-                osascript -e 'tell application "Safari" to get URL of current tab of front window'
-            `;
-            exec(scriptForSafari, (error, stdout) => {
-                if (!error && stdout) {
-                    this.detectChatGPTInURL(stdout);
-                }
-            });
-
-            const scriptForFirefox = `
-                osascript -e 'tell application "Firefox" to get URL of active tab of front window'
-            `;
-            exec(scriptForFirefox, (error, stdout) => {
-                if (!error && stdout) {
-                    this.detectChatGPTInURL(stdout);
-                }
-            });
-        } else if (this.platform === 'linux' && !this.isWSL) {
-            exec('ps aux | grep -E "firefox|chrome|chromium|edge" | grep -v grep', (error, stdout) => {
-                if (error) {
-                    return;
-                }
-                this.detectChatGPTInProcessInfo(stdout);
-                exec('xdotool getwindowfocus getwindowname', (err, output) => {
-                    if (!err && output) {
-                        this.detectChatGPTInWindowTitles(output);
-                    }
-                });
-            });
-        }
-    }
-
-    private checkWindowsBrowserTabs() {
-        const powershellCommand = `powershell.exe -Command "Get-Process | Where-Object { $_.MainWindowTitle -ne '' -and ($_.Name -match 'chrome|firefox|edge|iexplore|opera') } | Select-Object MainWindowTitle | Format-Table -HideTableHeaders"`;
-        exec(powershellCommand, (error, stdout) => {
+        exec(command, (error, stdout, stderr) => {
             if (error) {
-                console.error('Windows側ブラウザタイトル取得エラー:', error);
+                const errorMsg = `プロセス取得エラー: ${error.message}`;
+                console.error(errorMsg);
+                this.logger?.append(`[${Date.now()}] ${errorMsg}`);
                 return;
             }
-            if (stdout) {
-                this.detectChatGPTInWindowTitles(stdout);
+
+            if (stderr) {
+                const errorMsg = `標準エラー: ${stderr}`;
+                console.error(errorMsg);
+                this.logger?.append(`[${Date.now()}] ${errorMsg}`);
+                return;
             }
+
+            this.verifyBrowserActivity(stdout);
         });
     }
 
-    private detectChatGPTInWindowTitles(windowInfo: string) {
+    private verifyBrowserActivity(processes: string) {
+        const timestamp = Date.now();
+        let browserDetected = this.isBrowserRunning(processes);
+        this.logger?.append(`[${timestamp}] Browser detected: ${browserDetected}`);
+
+        if (this.platform === Platform.Windows || this.platform === Platform.WSL) {
+            this.verifyWindowsBrowserActivity();
+        } else if (this.platform === Platform.Darwin) {
+            this.verifyDarwinBrowserActivity();
+        } else if (this.platform === Platform.Linux) {
+            this.verifyLinuxBrowserActivity();
+        }
+    }
+
+    private verifyWindowsBrowserActivity(): void {
+        exec(`COLS=80 LINES=25 powershell.exe -NoLogo -NonInteractive -Command "Get-Process | Where-Object { $_.ProcessName -in @('chrome', 'msedge', 'firefox') -and $_.MainWindowTitle -ne '' } | ForEach-Object { $_.MainWindowTitle }"`, (error, stdout, stderr) => {
+            if (error) {
+                return;
+            }
+            if (stderr) {
+                this.logger?.append(`[${Date.now()}] WSL browser check stderr: ${stderr}`);
+                return;
+            }
+            this.checkDetectionKeywords(stdout);
+        }
+        );
+    }
+
+    private isBrowserRunning(processes: string): boolean {
+        for (const keyword of Object.values(this.BROWSER_KEYWORDS).flat()) {
+            if (processes.toLowerCase().includes(keyword)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private verifyDarwinBrowserActivity(): void {
+        const scripts = [
+            'tell application "Google Chrome" to get URL of active tab of front window',
+            'tell application "Safari" to get URL of current tab of front window',
+            'tell application "Firefox" to get URL of active tab of front window',
+        ];
+        scripts.forEach(script => {
+            const command = `osascript -e '${script}'`;
+            exec(command, (error, stdout, stderr) => {
+                if (error) {
+                    return;
+                }
+                if (stderr) {
+                    this.logger?.append(`[${Date.now()}] check stderr: ${stderr}`);
+                    return;
+                }
+                this.checkDetectionKeywords(stdout);
+            });
+        });
+    }
+
+    private verifyLinuxBrowserActivity(): void {
+        exec('ps aux | grep -E "firefox|chrome|chromium|edge" | grep -v grep', (error, stdout, stderr) => {
+            if (error) {
+                return;
+            }
+            if (stderr) {
+                this.logger?.append(`[${Date.now()}] Linux browser check stderr: ${stderr}`);
+                return;
+            }
+            this.checkDetectionKeywords(stdout);
+        });
+    }
+
+    private checkDetectionKeywords(value: string) {
+        const timestamp = Date.now();
         for (const keyword of this.DETECTION_KEYWORDS) {
-            if (windowInfo.toLowerCase().includes(keyword)) {
-                this.notifyChatGPTDetected();
+            if (value.toLowerCase().includes(keyword)) {
+                this.logger?.append(`[${timestamp}] Detected keyword in process: ${keyword}`);
+                this.notifyDetectedAlert();
                 return;
             }
         }
     }
 
-    private detectChatGPTInURL(url: string) {
-        for (const keyword of this.DETECTION_KEYWORDS) {
-            if (url.toLowerCase().includes(keyword)) {
-                this.notifyChatGPTDetected();
-                return;
-            }
-        }
-    }
-
-    private detectChatGPTInProcessInfo(processInfo: string) {
-        for (const keyword of this.DETECTION_KEYWORDS) {
-            if (processInfo.toLowerCase().includes(keyword)) {
-                this.notifyChatGPTDetected();
-                return;
-            }
-        }
-    }
-
-    private notifyChatGPTDetected() {
+    private notifyDetectedAlert() {
         const timestamp = Date.now();
         if (timestamp - this.lastNotified > 15000) {
             vscode.window.showWarningMessage('ChatGPT detected in browser!');

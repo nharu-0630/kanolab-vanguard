@@ -7,7 +7,8 @@ class KeyLogger {
     private filePath: string;
     private timestamp: number;
     private logger: HashChainLogger;
-    private LOGGER_SUFFIX = '.key.log';
+
+    private readonly LOGGER_SUFFIX = '.key.log';
 
     constructor(filePath: string) {
         this.filePath = filePath + this.LOGGER_SUFFIX;
