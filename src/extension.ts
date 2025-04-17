@@ -1,87 +1,45 @@
 import * as vscode from 'vscode';
-import { startDiffInterval } from './diffLogger';
-import { setupKeyLogger } from './keyLogger';
-import { setupStatusBar, updateStatusBarForCurrentFile } from './statusBar';
-import { isAllowedFileName } from './utils';
+import { DiffLoggerMonitor } from './DiffLoggerMonitor';
+import { KeyLoggerMonitor } from './KeyLoggerMonitor';
+import { VMonitorManager } from './VMonitorManager';
 
 export function activate(context: vscode.ExtensionContext) {
-	const statusBarItem = setupStatusBar();
-	updateStatusBarForCurrentFile();
+	const monitorManager = VMonitorManager.getInstance();
+
+	monitorManager.registerMonitor(new KeyLoggerMonitor());
+	monitorManager.registerMonitor(new DiffLoggerMonitor());
+
+	const statusBarItem = monitorManager.getStatusBarItem();
+	monitorManager.updateStatusBar();
 
 	if (vscode.window.activeTextEditor) {
 		const document = vscode.window.activeTextEditor.document;
-		if (isAllowedFileName(document.fileName) && !document.isUntitled) {
-			updateFilepath(document);
-		}
+		monitorManager.registerDocument(document);
 	}
 
-	const keyLoggerDisposable = setupKeyLogger();
-
 	const onSaveDisposable = vscode.workspace.onDidSaveTextDocument(document => {
-		if (isAllowedFileName(document.fileName)) {
-			updateFilepath(document);
-		}
+		monitorManager.registerDocument(document);
 	});
 
 	const onEditorChangeDisposable = vscode.window.onDidChangeActiveTextEditor(editor => {
-		updateStatusBarForCurrentFile();
-		if (editor && isAllowedFileName(editor.document.fileName)) {
-			updateFilepath(editor.document);
+		monitorManager.updateStatusBar();
+		if (editor && !editor.document.isUntitled) {
+			monitorManager.registerDocument(editor.document);
 		}
 	});
 
-	const onEditorCloseDisposable = vscode.workspace.onDidCloseTextDocument(document => {
-		const fileName = document.fileName;
-		updateStatusBarForCurrentFile();
+	const onEditorCloseDisposable = vscode.workspace.onDidCloseTextDocument(_ => {
+		monitorManager.updateStatusBar();
 	});
 
-	const diffIntervalDisposable = startDiffInterval();
-
 	context.subscriptions.push(
-		keyLoggerDisposable,
+		statusBarItem,
 		onSaveDisposable,
 		onEditorChangeDisposable,
-		onEditorCloseDisposable,
-		statusBarItem,
-		diffIntervalDisposable
+		onEditorCloseDisposable
 	);
 }
 
-function updateFilepath(document: vscode.TextDocument) {
-	if (document.isUntitled) {
-		return;
-	}
-
-	const fileName = document.fileName;
-	if (!isAllowedFileName(fileName)) {
-		return;
-	}
-
-	try {
-		const keyLogFilePath = fileName + ".key.log";
-		const diffLogFilePath = fileName + ".diff.log";
-
-		const { initKeyLogFile, registerFile: registerKeyLogFile } = require('./keyLogger');
-		const { initDiffLogFile, registerDiffFile } = require('./diffLogger');
-
-		initKeyLogFile(fileName, keyLogFilePath);
-		registerKeyLogFile(fileName, keyLogFilePath);
-
-		initDiffLogFile(fileName, diffLogFilePath);
-		registerDiffFile(fileName, diffLogFilePath, document.getText());
-
-		updateStatusBarForCurrentFile();
-	} catch (error) {
-		vscode.window.showErrorMessage(`ファイルの作成に失敗しました: ${error}`);
-		const { updateStatusBarError } = require('./statusBar');
-		updateStatusBarError("ファイルの作成に失敗しました");
-	}
-}
-
 export function deactivate() {
-	const { cleanupDiffLogger } = require('./diffLogger');
-	const { cleanupKeyLogger } = require('./keyLogger');
-
-	cleanupDiffLogger();
-	cleanupKeyLogger();
+	VMonitorManager.getInstance().cleanupAllMonitors();
 }
