@@ -2,7 +2,7 @@
   "name": "kanolab-vanguard",
   "displayName": "Kanolab Vanguard",
   "description": "kanolab-vanguard",
-  "version": "0.0.6",
+  "version": "0.1.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nharu-0630/kanolab-vanguard.git"
