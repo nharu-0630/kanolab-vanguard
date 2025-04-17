@@ -3,6 +3,10 @@
   "displayName": "Vanguard",
   "description": "kanolab-vanguard",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nharu-0630/kanolab-vanguard.git"
+  },
   "engines": {
     "vscode": "^1.99.0"
   },
@@ -23,7 +27,9 @@
     "watch": "tsc -watch -p ./",
     "pretest": "pnpm run compile && pnpm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "package": "pnpm vsce package --no-dependencies",
+    "publish": "pnpm vsce publish --no-dependencies"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { BrowserLoggerService } from './services/BrowserLogger';
 import { DiffLoggerService } from './services/DiffLoggerService';
 import { KeyLoggerService } from './services/KeyLoggerService';
 import { ServiceManager } from './services/ServiceManager';
@@ -8,6 +9,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	serviceManager.registerService(new KeyLoggerService());
 	serviceManager.registerService(new DiffLoggerService());
+	serviceManager.registerService(new BrowserLoggerService());
 
 	const statusBarItem = serviceManager.getStatusBarItem();
 	serviceManager.updateStatusBar();
