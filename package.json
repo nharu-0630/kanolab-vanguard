@@ -2,7 +2,7 @@
   "name": "kanolab-vanguard",
   "displayName": "Kanolab Vanguard",
   "description": "kanolab-vanguard",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nharu-0630/kanolab-vanguard.git"
@@ -14,7 +14,9 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": []
