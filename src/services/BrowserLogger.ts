@@ -15,7 +15,7 @@ export class BrowserLoggerService implements VService {
     private isEnabled: boolean = false;
 
     private readonly DIFF_INTERVAL_MS = 5000;
-    private readonly DETECTION_KEYWORDS = ['chatgpt', 'chat.openai.com', 'claude', 'gemini', 'perplexity', 'copilot', 'deepseek'];
+    private readonly DETECTION_KEYWORDS = ['chatgpt', 'chat.openai.com', 'claude', 'gemini', 'perplexity', 'copilot', 'deepseek', 'notebooklm'];
 
     constructor() {
         this.setup();
@@ -102,14 +102,14 @@ export class BrowserLoggerService implements VService {
     }
 
     private verifyDarwinBrowserActivity(): void {
-        const scripts = [
-            'tell application "Google Chrome" to get URL of active tab of front window',
-            'tell application "Safari" to get URL of current tab of front window',
-            'tell application "Firefox" to get URL of active tab of front window',
-        ];
+        const scripts = {
+            'Google Chrome.app': 'tell application "Google Chrome" to get URL of active tab of front window',
+            'Safari.app': 'tell application "Safari" to get URL of current tab of front window',
+            // 'Firefox.app': 'tell application "Firefox" to get URL of active tab of front window',
+        };
         let found = false;
-        for (const script of scripts) {
-            exec(`osascript -e '${script}'`, (error, stdout, stderr) => {
+        for (const [app, script] of Object.entries(scripts)) {
+            exec(`pgrep -f "${app}"`, (error, stdout, stderr) => {
                 if (error) {
                     return;
                 }
@@ -117,7 +117,19 @@ export class BrowserLoggerService implements VService {
                     this.logger?.append(`[${Date.now()}] check stderr: ${stderr}`);
                     return;
                 }
-                found = found || this.detectKeywords(stdout);
+                if (stdout.length === 0) {
+                    return;
+                }
+                exec(`osascript -e '${script}'`, (error, stdout, stderr) => {
+                    if (error) {
+                        return;
+                    }
+                    if (stderr) {
+                        this.logger?.append(`[${Date.now()}] check stderr: ${stderr}`);
+                        return;
+                    }
+                    found = found || this.detectKeywords(stdout);
+                });
             });
         }
         if (!found) {
