@@ -80,7 +80,9 @@ export class BrowserLoggerService implements VService {
                 this.logger?.append(`[${Date.now()}] check stderr: ${stderr}`);
                 return;
             }
-            this.detectKeywords(stdout);
+            if (!this.detectKeywords(stdout)) {
+                this.logger?.append(`[${Date.now()}] No detection keywords found in browser`);
+            }
         });
     }
 
@@ -93,7 +95,9 @@ export class BrowserLoggerService implements VService {
                 this.logger?.append(`[${Date.now()}] check stderr: ${stderr}`);
                 return;
             }
-            this.detectKeywords(stdout);
+            if (!this.detectKeywords(stdout)) {
+                this.logger?.append(`[${Date.now()}] No detection keywords found in browser`);
+            }
         });
     }
 
@@ -103,10 +107,9 @@ export class BrowserLoggerService implements VService {
             'tell application "Safari" to get URL of current tab of front window',
             'tell application "Firefox" to get URL of active tab of front window',
         ];
-        let result = '';
-        scripts.forEach(s => {
-            const script = `osascript -e '${s}'`;
-            exec(script, (error, stdout, stderr) => {
+        let found = false;
+        for (const script of scripts) {
+            exec(`osascript -e '${script}'`, (error, stdout, stderr) => {
                 if (error) {
                     return;
                 }
@@ -114,10 +117,12 @@ export class BrowserLoggerService implements VService {
                     this.logger?.append(`[${Date.now()}] check stderr: ${stderr}`);
                     return;
                 }
-                result += stdout + '\n';
+                found = found || this.detectKeywords(stdout);
             });
-        });
-        this.detectKeywords(result);
+        }
+        if (!found) {
+            this.logger?.append(`[${Date.now()}] No detection keywords found in browser`);
+        }
     }
 
     private verifyLinuxBrowserActivity(): void {
@@ -129,11 +134,13 @@ export class BrowserLoggerService implements VService {
                 this.logger?.append(`[${Date.now()}] check stderr: ${stderr}`);
                 return;
             }
-            this.detectKeywords(stdout);
+            if (!this.detectKeywords(stdout)) {
+                this.logger?.append(`[${Date.now()}] No detection keywords found in browser`);
+            }
         });
     }
 
-    private detectKeywords(lines: string) {
+    private detectKeywords(lines: string): boolean {
         const timestamp = Date.now();
         let found = false;
         for (const line of lines.split('\n')) {
@@ -148,10 +155,7 @@ export class BrowserLoggerService implements VService {
                 }
             }
         }
-        if (found) {
-            return;
-        }
-        this.logger?.append(`[${timestamp}] No detection keywords found in browser`);
+        return found;
     }
 
     private notifyDetectedAlert() {

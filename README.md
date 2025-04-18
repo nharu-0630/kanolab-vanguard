@@ -16,6 +16,15 @@ This extension is a service that detects cheating using generated AI by monitori
 このロガーは、ブラウザ上で主要な生成AIを使用したことを検知することができます。ブラウザのCookieやパスワードなどの機密情報には一切アクセスせず、ローカル内で処理されるため、生成AIの使用有無ならびにそのタブのタイトルのみをログに出力します。\
 This logger can detect the use of major generative AIs on the browser. It does not access any sensitive information such as browser cookies or passwords, and is processed locally, logging only the use of the generated AI and its tab title.
 
+#### 検知可能な生成AI
+
+- ChatGPT
+- Claude
+- Gemini
+- Perplexity
+- Microsoft Copilot
+- DeepSeek
+
 ### 差分ロガー (DiffLogger)
 
 このロガーは、編集中のファイルの差分を定期的にログに出力することで、クリップボードによる貼付けを検知することができます。\
