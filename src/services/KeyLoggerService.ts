@@ -76,7 +76,6 @@ export class KeyLoggerService implements VService {
     private stopListening(): void {
         if (this.disposable) {
             this.disposable.dispose();
-            this.disposable = undefined;
         }
     }
 

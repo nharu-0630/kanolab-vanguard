@@ -50,21 +50,12 @@ export class BrowserLoggerService implements VService {
                 }
             }
         };
-
-        this.logger?.append(`[${Date.now()}] Browser tracking started`);
     }
 
     private stopTracking(): void {
-        if (this.browserIntervalId) {
-            clearInterval(this.browserIntervalId);
-            this.browserIntervalId = undefined;
-        }
-
         if (this.disposable) {
             this.disposable.dispose();
         }
-
-        this.logger?.append(`[${Date.now()}] Browser tracking stopped`);
     }
 
     private trackBrowser(): void {

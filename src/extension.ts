@@ -10,7 +10,6 @@ export function activate(context: vscode.ExtensionContext) {
 	serviceManager.registerService(new KeyLoggerService());
 	serviceManager.registerService(new DiffLoggerService());
 	serviceManager.registerService(new BrowserLoggerService());
-	serviceManager.start();
 
 	const statusBarItem = serviceManager.getStatusBarItem();
 	serviceManager.updateStatusBar();

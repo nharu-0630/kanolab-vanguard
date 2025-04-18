@@ -83,17 +83,14 @@ export class ServiceManager {
 
     public registerDocument(document: vscode.TextDocument): void {
         const fileName = document.fileName;
-
         if (document.isUntitled) {
             return;
         }
-
         this.services.forEach(s => {
             if (s.isSupported(fileName)) {
                 s.register(fileName);
             }
         });
-
         this.updateStatusBar();
     }
 
