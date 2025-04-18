@@ -34,8 +34,8 @@ export class BrowserLoggerService implements VService {
     }
 
     private startTracking(): void {
-        if (this.browserIntervalId) {
-            clearInterval(this.browserIntervalId);
+        if (this.disposable) {
+            this.disposable.dispose();
         }
 
         this.browserIntervalId = setInterval(() => {

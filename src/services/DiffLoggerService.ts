@@ -43,8 +43,8 @@ export class DiffLoggerService implements VService {
     }
 
     private startTracking(): void {
-        if (this.diffIntervalId) {
-            clearInterval(this.diffIntervalId);
+        if (this.disposable) {
+            this.disposable.dispose();
         }
 
         this.diffIntervalId = setInterval(() => {
