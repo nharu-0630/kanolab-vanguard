@@ -51,6 +51,13 @@ export class ServiceManager {
     public updateStatusBar(): void {
         const editor = vscode.window.activeTextEditor;
 
+        if (this.isEnabled === false) {
+            this.statusBarItem.text = "$(unlock) Vanguard 停止中";
+            this.statusBarItem.color = "red";
+            this.statusBarItem.tooltip = "サービスが無効です";
+            return;
+        }
+
         if (!editor) {
             this.statusBarItem.text = "$(shield) Vanguard 待機中";
             this.statusBarItem.color = "yellow";
@@ -69,14 +76,7 @@ export class ServiceManager {
         }
 
         const activeServices = this.services.filter(s => s.isActive(fileName));
-
-        if (activeServices.length === 0) {
-            this.statusBarItem.text = "$(unlock) Vanguard 停止中";
-            this.statusBarItem.color = "red";
-            this.statusBarItem.tooltip = "サービスが無効です";
-            return;
-        }
-        this.statusBarItem.text = "$(shield) Vanguard " + activeServices.length + "/" + this.services.length + " 実行中";
+        this.statusBarItem.text = "$(shield) Vanguard 実行中";
         this.statusBarItem.color = activeServices.length === this.services.length ? "green" : "yellow";
         this.statusBarItem.tooltip = "サービスが有効です\n" + this.services.map(s => s.getTooltip()).join('\n');
     }
