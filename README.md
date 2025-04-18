@@ -18,12 +18,12 @@ This logger can detect the use of major generative AIs on the browser. It does n
 
 #### 検知可能な生成AI
 
-- ChatGPT
-- Claude
-- Gemini
-- Perplexity
-- Microsoft Copilot
-- DeepSeek
+- [ChatGPT](https://chatgpt.com/)
+- [Claude](https://claude.ai/)
+- [Gemini](https://gemini.google.com/)
+- [Perplexity](https://www.perplexity.ai/)
+- [Microsoft Copilot](https://copilot.microsoft.com/)
+- [DeepSeek](https://chat.deepseek.com/)
 
 ### 差分ロガー (DiffLogger)
 
