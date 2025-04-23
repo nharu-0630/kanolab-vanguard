@@ -22,15 +22,6 @@ export class BrowserLoggerService implements VService {
     }
 
     private setup(): void {
-        const currentDir = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-        if (!currentDir) {
-            throw new Error('No workspace folder found.');
-        }
-
-        this.logger = new HashChainLogger(currentDir + '/browser.log');
-        const systemInfo = `[${Date.now()}] os: "${os.platform()} ${os.release()}" hostname: "${os.hostname()}" username: "${os.userInfo().username}"`;
-        this.logger.append(systemInfo);
-        this.logger.append(`[${Date.now()}] Detected platform: ${this.platform}`);
     }
 
     private startTracking(): void {
@@ -50,6 +41,18 @@ export class BrowserLoggerService implements VService {
                 }
             }
         };
+
+        if (!this.logger) {
+            const currentDir = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+            if (!currentDir) {
+                throw new Error('No workspace folder found.');
+            }
+
+            this.logger = new HashChainLogger(currentDir + '/browser.log');
+            const systemInfo = `[${Date.now()}] os: "${os.platform()} ${os.release()}" hostname: "${os.hostname()}" username: "${os.userInfo().username}"`;
+            this.logger.append(systemInfo);
+            this.logger.append(`[${Date.now()}] Detected platform: ${this.platform}`);
+        }
     }
 
     private stopTracking(): void {
@@ -104,8 +107,7 @@ export class BrowserLoggerService implements VService {
     private verifyDarwinBrowserActivity(): void {
         const scripts = {
             'Google Chrome.app': 'tell application "Google Chrome" to get URL of active tab of front window',
-            'Safari.app': 'tell application "Safari" to get URL of current tab of front window',
-            // 'Firefox.app': 'tell application "Firefox" to get URL of active tab of front window',
+            'Safari.app/Contents/MacOS/Safari': 'tell application "Safari" to get URL of current tab of front window',
         };
         let found = false;
         for (const [app, script] of Object.entries(scripts)) {
