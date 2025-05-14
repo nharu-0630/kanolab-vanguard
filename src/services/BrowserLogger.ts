@@ -15,7 +15,7 @@ export class BrowserLoggerService implements VService {
     private isEnabled: boolean = false;
 
     private readonly DIFF_INTERVAL_MS = 5000;
-    private readonly DETECTION_KEYWORDS = ['chatgpt', 'chat.openai.com', 'claude', 'gemini', 'perplexity', 'copilot', 'deepseek', 'notebooklm'];
+    private readonly DETECTION_KEYWORDS = ['chatgpt', 'chat.openai.com', 'claude', 'gemini', 'perplexity', 'copilot', 'deepseek', 'notebooklm', 'grok'];
 
     constructor() {
         this.setup();
